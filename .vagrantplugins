@@ -1,6 +1,7 @@
 required_plugins = %w(
   nugrant
   vagrant-timezone
+  vagrant-proxyconf
 )
 
 needs_restart = false

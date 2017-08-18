@@ -1,39 +1,8 @@
 ---
 - hosts: all
+  gather_facts: False
   vars:
     ansible_become: True
-    #database_type: pgsql
-    #database_type_long: postgresql
-    #server_dbport: 5432
-
-  # pre_tasks:
-  # - name: Install Postgresql
-  #   yum:
-  #     pkg: postgresql-server
-  #     state: present
-
-  # - name: Initiate database
-  #   command: service postgresql initdb
-  #   args:
-  #     creates: /var/lib/pgsql/data/postgresql.conf
-
-  # - name: Configure PostgreSQL authentication
-  #   lineinfile:
-  #     dest: /var/lib/pgsql/data/pg_hba.conf
-  #     regexp: '^host +all +all +::1/128 +ident'
-  #     line: 'host    all             all             ::1/128            trust'
-
-  # - name: Enable PostgreSQL
-  #   service:
-  #     name: "{{ item }}"
-  #     enabled: yes
-  #     state: started
-  #   with_items:
-  #     - postgresql
-
-#  roles:
-#  - { role: geerlingguy.apache }
-#  - { role: dj-wasabi.zabbix-server, database_type: pgsql, database_type_long: postgresql }
 
   tasks:
   - selinux:
@@ -114,4 +83,3 @@
   handlers:
     - name: systemctl daemon-reload
       command: systemctl daemon-reload
-#  - name: Enable Zabbix Java Gateway

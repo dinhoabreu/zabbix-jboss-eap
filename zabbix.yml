@@ -1,39 +1,8 @@
 ---
 - hosts: all
+  gather_facts: False
   vars:
     ansible_become: True
-    #database_type: pgsql
-    #database_type_long: postgresql
-    #server_dbport: 5432
-
-  # pre_tasks:
-  # - name: Install Postgresql
-  #   yum:
-  #     pkg: postgresql-server
-  #     state: present
-
-  # - name: Initiate database
-  #   command: service postgresql initdb
-  #   args:
-  #     creates: /var/lib/pgsql/data/postgresql.conf
-
-  # - name: Configure PostgreSQL authentication
-  #   lineinfile:
-  #     dest: /var/lib/pgsql/data/pg_hba.conf
-  #     regexp: '^host +all +all +::1/128 +ident'
-  #     line: 'host    all             all             ::1/128            trust'
-
-  # - name: Enable PostgreSQL
-  #   service:
-  #     name: "{{ item }}"
-  #     enabled: yes
-  #     state: started
-  #   with_items:
-  #     - postgresql
-
-#  roles:
-#  - { role: geerlingguy.apache }
-#  - { role: dj-wasabi.zabbix-server, database_type: pgsql, database_type_long: postgresql }
 
   tasks:
   - selinux:
@@ -58,7 +27,7 @@
       - zabbix-server-pgsql
       - zabbix-web-pgsql
       - zabbix-agent
-      - https://devzone.ch/~tschan/zabbix-java-gateway-3.2.3-1.el7.centos.x86_64.rpm
+      - zabbix-java-gateway
 
   - name: Initiate database
     command: service postgresql initdb
@@ -103,7 +72,7 @@
     lineinfile:
       dest: /etc/httpd/conf.d/zabbix.conf
       regexp: php_value date.timezone
-      line: php_value date.timezone Europe/Zurich
+      line: php_value date.timezone America/Sao_Paulo
 
   - name: Configure Zabbix
     ini_file:
@@ -114,15 +83,6 @@
     with_dict:
       JavaGateway: localhost
       StartJavaPollers: 1
-
-#  - seboolean:
-#      name: "{{ item }}"
-#      state: on
-#      persistent: yes
-#    with_items:
-#      - httpd_can_connect_zabbix
-#      - httpd_can_network_connect_db
-#      - zabbix_can_network
 
   - name: Enable Zabbix Services
     service:
@@ -135,13 +95,15 @@
       - zabbix-agent
       - zabbix-java-gateway
 
-#  - name: Install Zabbix Agent and Java Gateway
-#    yum:
-#      pkg: "{{ item }}"
-#      state: present
-#    with_items:
-#      - zabbix-agent
-#      - https://devzone.ch/~tschan/zabbix-java-gateway-3.2.3-1.el7.centos.x86_64.rpm
+  - name: Check JBoss downloaded
+    stat:
+      path: /vagrant/jboss-eap-6.4.0.zip
+    register: jboss
+
+  - name: Download JBoss
+    shell: |
+      curl -Lo /vagrant/jboss-eap-6.4.0.zip https://www.dropbox.com/s/1lehk7mu5i69gml/jboss-eap-6.4.0.zip?dl=0
+    when: jboss.stat.exists == False
 
   - name: Install JBoss EAP dependencies
     yum:
@@ -150,28 +112,43 @@
     with_items:
       - java-1.8.0-openjdk-devel
 
-  - user:
-      name: eap
-      home: /opt/jboss-eap-6.4
-      comment: "JBoss EAP"      
-
-  - name: Install JBoss EAP
+  - name: Extract JBoss EAP files
     unarchive:
       src: /vagrant/jboss-eap-6.4.0.zip
-      dest: /opt
-      owner: eap
-      group: eap
-      creates: /opt/jboss-eap-6.4/version.txt
-    
-#  - name: Install JBoss EAP
-    #become_user: eap
-#    command: su eap -c 'unzip /vagrant/jboss-eap-6.4.0.zip'
-#    args:
-#      chdir: /opt
-#      creates: /opt/jboss-eap-6.4/version.txt
-    
-  - name: Copy jboss-client.jar into Zabbix CLASSPATH
-    command: cp /opt/jboss-eap-6.4/bin/client/jboss-client.jar /usr/share/zabbix-java-gateway/lib
-    args:
-      creates: /usr/share/zabbix-java-gateway/lib/jboss-client.jar
- 
+      dest: /usr/src
+
+  - name: Check Zabbix Source downloaded
+    stat:
+      path: /vagrant/zabbix-3.2.7.tgz
+    register: zabbix
+
+  - name: Download Zabbix Source
+    shell: |
+      curl -Lo /vagrant/zabbix-3.2.7.tgz 'https://downloads.sourceforge.net/project/zabbix/ZABBIX%20Latest%20Stable/3.2.7/zabbix-3.2.7.tar.gz?r=&ts=1503001091&use_mirror=ufpr'
+    when: zabbix.stat.exists == False
+
+  - name: Extract Zabbix Source
+    unarchive:
+      src: /vagrant/zabbix-3.2.7.tgz
+      dest: /usr/src
+
+  - name: Compile Zabbix Java Gateway
+    shell: /vagrant/src/build.sh
+
+  - name: Configure Zabbix Java Gateway
+    ini_file:
+      dest: /etc/zabbix/zabbix_java_gateway.conf
+      no_extra_spaces: yes
+      section: null
+      option: "{{ item.key }}"
+      value: "{{ item.value }}"
+    with_dict:
+      GATEWAY_HOME: "/usr/local/sbin/zabbix_java"
+    notify:
+      restart gateway
+
+  handlers:
+    - name: restart gateway
+      service:
+        name: zabbix-java-gateway
+        state: restarted
