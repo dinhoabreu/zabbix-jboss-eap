@@ -1,64 +1,74 @@
 Configuring Zabbix for JBoss EAP monitoring
 ===========================================
 
+## Local environment
+
 Tested with Zabbix 3.2 and JBoss EAP 6.4.
 
-1. Make sure you have a working Zabbix 3.2 and JBoss EAP 6.x installation
-
-Access to each Java gateway is configured directly in Zabbix server or proxy configuration file, thus only one Java gateway may be configured per Zabbix server or Zabbix proxy.
-
-2. Add JBoss EAP management user
-
 ```bash
-/opt/jboss-eap-6.4/bin/add-user.sh -u zabbix -p <password>
+vagrant up
 ```
 
-3. Install fixed `src/JMXItemChecker.java` Zabbix Java Gateway matching the version of you Zabbix installation from the releases of this repository.
+This environment create 2 hosts:
 
-```bash
-curl -Lo zabbix.tgz 'https://downloads.sourceforge.net/project/zabbix/ZABBIX%20Latest%20Stable/3.2.7/zabbix-3.2.7.tar.gz?r=&ts=1503001091&use_mirror=ufpr'
-tar xzvf zabbix.tgz
-cp src/JMXItemChecker.java zabbix-3.2.7/src/zabbix_java/src/com/zabbix/gateway/JMXItemChecker.java
-cd zabbix-3.2.7/
-./configure --enable-java
-make
-cp src/zabbix_java/bin/zabbix-java-gateway-3.2.7.jar /usr/share/zabbix-java-gateway/bin/
-cd ..
-tar -C /usr/share/zabbix-java-gateway/lib/ -xzvf files/libs.tgz
-```
+- `zabbix`: Zabbix server (192.168.122.11)
+- `eap`: JBoss EAP 6.4 (192.168.122.12)
 
-4. Configure Java Gateway in ``/etc/zabbix/zabbix_server.conf``:
+Open http://192.168.122.11/zabbix/ and keep all default values. Sign in with `Admin`/`zabbix` and create following Host and Item for testes:
 
-/etc/zabbix/zabbix_server.conf:
+![Host](doc/host.png)
+![Item](doc/item.png)
 
-```ini
-JavaGateway = 192.168.122.12
-StartJavaPollers = 1
-```
+## Create package and configuration
 
-https://www.zabbix.com/documentation/3.2/manual/concepts/java
+1. After create local environment access `zabbix` host and archive all files needed to Zabbix Java Gateway featured with `remoting-jmx` protocol used by JBOSS:
 
-5. `cp /opt/jboss-eap-6.4/bin/client/jboss-client.jar /usr/share/zabbix-java-gateway/lib`
+    ```
+    vagrant ssh zabbix
+    cd /
+    tar czvf /vagrant/zabbix-java-gateway.tgz usr/local/sbin/zabbix_java/
+    ```
 
-6. Enable ``zabbix-java-gateway`` service
+    > File `/vagrant/zabbix-java-gateway.tgz` will be appear in your workspace.
 
-7. Add a JMX interface to JBoss EAP host you want to monitor.the host who is running the Zabbix Java Gateway and monitoring your JBoss EAP servers via JMX, e.g.
+2. Extract this files into Zabbix Server and change `/etc/zabbix/zabbix_java_gateway.conf` with:
 
-* IP/DNS: 192.168.122.12
-* Port: 9999
+    ```diff
+    --- zabbix_java_gateway.conf.orig
+    +++ zabbix_java_gateway.conf
+    @@ -43,3 +43,4 @@
+    # TIMEOUT=3
 
-8. Add item with:
+    TIMEOUT=3
+    +GATEWAY_HOME=/usr/local/sbin/zabbix_java
+    ```
 
-interface, username, password, key: jmx["java.lang:type=Memory","HeapMemoryUsage.used"]
+3. Configure Java Gateway in ``/etc/zabbix/zabbix_server.conf``:
 
-## Troubleshooting
+    ```ini
+    JavaGateway = 127.0.0.1
+    StartJavaPollers = 3
+    ```
 
-com.zabbix.gateway.ZabbixException: javax.security.sasl.SaslException: Authentication failed: the server presented no authentication mechanisms
- => User cannot log in, e.g. because of missing or incorrent login data in Zabbix or missing user in EAP
+4. Enable ``zabbix-java-gateway`` service
+
+5. Create JBOSS user
+
+    ```
+    /opt/jboss-eap-6.4/bin/add-user.sh -u zabbix -p <password>
+    ```
+
+6. Configure an Item with JMX
+
+    Example of memory used:
+
+    ```
+    jmx["java.lang:type=Memory","HeapMemoryUsage.used"]
+    ```
 
 ## Resources
 
-* https://www.zabbix.org/wiki/ConfigureJMX
-* https://www.zabbix.org/wiki/Docs/howto/jmx_discovery
-* https://github.com/jmxtrans/jmxtrans/wiki/MoreExamples
-* https://www.denniskanbier.nl/blog/monitoring/jboss-eap-6-monitoring-using-remoting-jmx-and-zabbix/
+* [Java Gateway](https://www.zabbix.com/documentation/3.2/manual/concepts/java)
+* [Configuring JMX](https://www.zabbix.org/wiki/ConfigureJMX)
+* [Configuring Zabbix for JBoss EAP monitoring](https://github.com/puzzle/zabbix-jboss-eap)
+* [JBoss EAP 6 monitoring using remoting-jmx and Zabbix](https://www.denniskanbier.nl/blog/monitoring/jboss-eap-6-monitoring-using-remoting-jmx-and-zabbix/)
