@@ -9,17 +9,13 @@
       state: disabled
 
   - name: Add Zabbix repo
-    yum_repository:
-      name: zabbix
-      description: Zabbix Repo
-      baseurl: http://repo.zabbix.com/zabbix/3.2/rhel/7/x86_64/
-      gpgcheck: no
+    yum:
+      name: https://repo.zabbix.com/zabbix/3.2/rhel/7/x86_64/zabbix-release-3.2-1.el7.noarch.rpm
+      state: present
 
   - name: Install Zabbix
     yum:
-      pkg: "{{ item }}"
-      state: present
-    with_items:
+      pkg: 
       - unzip
       - postgresql-server
       - python-psycopg2
@@ -28,6 +24,7 @@
       - zabbix-web-pgsql
       - zabbix-agent
       - zabbix-java-gateway
+      state: present
 
   - name: Initiate database
     command: service postgresql initdb
@@ -107,10 +104,9 @@
 
   - name: Install JBoss EAP dependencies
     yum:
-      pkg: "{{ item }}"
-      state: present
-    with_items:
+      pkg:
       - java-1.8.0-openjdk-devel
+      state: present
 
   - name: Extract JBoss EAP files
     unarchive:
