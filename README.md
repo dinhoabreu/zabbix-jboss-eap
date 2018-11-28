@@ -2,7 +2,7 @@
 
 ## Local environment
 
-Tested with Zabbix 3.2 and JBoss EAP 6.4.
+Tested with Zabbix 4.0.2 and JBoss EAP 6.4.
 
 ```bash
 export VAGRANT_HTTP_PROXY=$HTTP_PROXY
@@ -19,6 +19,12 @@ This environment create 2 hosts:
 Open <http://192.168.122.11/zabbix> and keep all default values. Sign in with `Admin`/`zabbix` and create following Host and Item for testes:
 
 ![Host](doc/host.png)
+
+Change **JMX endpoint**:
+
+- from: `service:jmx:rmi:///jndi/rmi://{HOST.CONN}:{HOST.PORT}/jmxrmi`
+- to: `service:jmx:remoting-jmx://{HOST.CONN}:{HOST.PORT}`
+
 ![Item](doc/item.png)
 
 ## Create package and configuration
@@ -28,10 +34,10 @@ Open <http://192.168.122.11/zabbix> and keep all default values. Sign in with `A
     ```bash
     vagrant ssh zabbix
     cd /
-    tar czvf /vagrant/zabbix-java-gateway.tgz usr/local/sbin/zabbix_java/
+    tar czvf /vagrant/zabbix-java-gateway-4.0.2.tgz usr/local/sbin/zabbix_java/
     ```
 
-    > File `/vagrant/zabbix-java-gateway.tgz` will be appear in your workspace.
+    > File `/vagrant/zabbix-java-gateway-4.0.2.tgz` will be appear in your workspace.
 
 2. Extract this files into Zabbix Server and change `/etc/zabbix/zabbix_java_gateway.conf` with:
 
@@ -54,7 +60,7 @@ Open <http://192.168.122.11/zabbix> and keep all default values. Sign in with `A
 
 4. Enable ``zabbix-java-gateway`` service
 
-5. Create JBOSS user into environment `eap`
+5. Create JBOSS user into local environment `eap`
 
     ```bash
     /opt/jboss-eap-6.4/bin/add-user.sh -u zabbix -p <password>
