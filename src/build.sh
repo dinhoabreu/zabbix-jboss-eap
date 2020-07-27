@@ -1,7 +1,7 @@
 #!//usr/bin/env bash
 
 JBOSS_DIR=${JBOSS_DIR:-/usr/src/jboss-eap-6.4}
-ZABBIX_SOURCE_DIR=${ZABBIX_SOURCE_DIR:-/usr/src/zabbix-4.0.2}
+ZABBIX_SOURCE_DIR=${ZABBIX_SOURCE_DIR:-/usr/src/zabbix-5.0.2}
 
 main() {
     cd "$ZABBIX_SOURCE_DIR" || return 1

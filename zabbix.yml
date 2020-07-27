@@ -10,7 +10,7 @@
 
   - name: Add Zabbix repo
     yum:
-      name: https://repo.zabbix.com/zabbix/4.0/rhel/7/x86_64/zabbix-release-4.0-1.el7.noarch.rpm
+      name: https://repo.zabbix.com/zabbix/5.0/rhel/7/x86_64/zabbix-release-5.0-1.el7.noarch.rpm
       state: present
 
   - name: Install Zabbix
@@ -21,9 +21,24 @@
       - python-psycopg2
       - libsemanage-python
       - zabbix-server-pgsql
-      - zabbix-web-pgsql
       - zabbix-agent
+      - centos-release-scl
       - zabbix-java-gateway
+      state: present
+
+  - name: Enable Zabbix Frontend
+    ini_file:
+      dest: /etc/yum.repos.d/zabbix.repo
+      section: zabbix-frontend
+      option: enabled
+      value: 1
+      backup: yes
+
+  - name: Install Zabbix Web
+    yum:
+      pkg: 
+      - zabbix-web-pgsql-scl
+      - zabbix-apache-conf-scl
       state: present
 
   - name: Initiate database
@@ -66,10 +81,12 @@
     shell: zcat /usr/share/doc/zabbix-server-pgsql-*/create.sql.gz | psql -U zabbix zabbix
 
   - name: Configure PHP
-    lineinfile:
-      dest: /etc/httpd/conf.d/zabbix.conf
-      regexp: php_value date.timezone
-      line: php_value date.timezone America/Sao_Paulo
+    ini_file:
+      dest: /etc/opt/rh/rh-php72/php-fpm.d/zabbix.conf
+      section: zabbix
+      option: php_value[date.timezone]
+      value: America/Sao_Paulo
+      backup: yes
 
   - name: Configure Zabbix
     ini_file:
@@ -90,6 +107,7 @@
       - httpd
       - zabbix-server
       - zabbix-agent
+      - rh-php72-php-fpm
       - zabbix-java-gateway
 
   - name: Check JBoss downloaded
@@ -115,17 +133,17 @@
 
   - name: Check Zabbix Source downloaded
     stat:
-      path: /vagrant/zabbix-4.0.2.tgz
+      path: /vagrant/zabbix-5.0.2.tgz
     register: zabbix
 
   - name: Download Zabbix Source
     shell: |
-      curl -Lo /vagrant/zabbix-4.0.2.tgz 'https://ufpr.dl.sourceforge.net/project/zabbix/ZABBIX%20Latest%20Stable/4.0.2/zabbix-4.0.2.tar.gz'
+      curl -Lo /vagrant/zabbix-5.0.2.tgz 'https://cdn.zabbix.com/zabbix/sources/stable/5.0/zabbix-5.0.2.tar.gz'
     when: zabbix.stat.exists == False
 
   - name: Extract Zabbix Source
     unarchive:
-      src: /vagrant/zabbix-4.0.2.tgz
+      src: /vagrant/zabbix-5.0.2.tgz
       dest: /usr/src
 
   - name: Compile Zabbix Java Gateway

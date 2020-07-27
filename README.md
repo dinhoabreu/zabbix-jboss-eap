@@ -2,7 +2,7 @@
 
 ## Local environment
 
-Tested with Zabbix 4.0.2 and JBoss EAP 6.4.
+Tested with Zabbix 5.0.2 and JBoss EAP 6.4.
 
 ```bash
 export VAGRANT_HTTP_PROXY=$HTTP_PROXY
@@ -34,10 +34,10 @@ Change **JMX endpoint**:
     ```bash
     vagrant ssh zabbix
     cd /
-    tar czvf /vagrant/zabbix-java-gateway-4.0.2.tgz usr/local/sbin/zabbix_java/
+    tar czvf /vagrant/zabbix-java-gateway-5.0.2.tgz usr/local/sbin/zabbix_java/
     ```
 
-    > File `/vagrant/zabbix-java-gateway-4.0.2.tgz` will be appear in your workspace.
+    > File `/vagrant/zabbix-java-gateway-5.0.2.tgz` will be appear in your workspace.
 
 2. Extract this files into Zabbix Server and change `/etc/zabbix/zabbix_java_gateway.conf` with:
 
